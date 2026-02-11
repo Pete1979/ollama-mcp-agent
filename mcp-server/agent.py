@@ -9,7 +9,7 @@ import subprocess
 import sys
 import os
 import asyncio
-from typing import Optional
+from typing import Optional, Dict, Any
 
 # ANSI Colors
 GREEN = "\033[92m"
@@ -42,6 +42,158 @@ class MCPAgent:
         except:
             return ""
     
+    def _sway_tool(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage Sway window manager configuration"""
+        action = args.get("action", "help")
+        config_path = os.path.expanduser("~/.config/sway/config")
+        
+        if action == "show-config":
+            try:
+                with open(config_path, 'r') as f:
+                    return {"content": f.read()}
+            except FileNotFoundError:
+                return {"error": f"Config file not found: {config_path}"}
+        
+        elif action == "list-keybindings":
+            try:
+                with open(config_path, 'r') as f:
+                    lines = f.readlines()
+                keybindings = [line.strip() for line in lines if line.strip().startswith('bindsym')]
+                return {"keybindings": "\n".join(keybindings)}
+            except FileNotFoundError:
+                return {"error": f"Config file not found: {config_path}"}
+        
+        elif action == "add-keybinding":
+            key = args.get("key")
+            command = args.get("command")
+            if not key or not command:
+                return {"error": "Both 'key' and 'command' arguments required"}
+            
+            binding_line = f"bindsym {key} exec {command}\n"
+            try:
+                with open(config_path, 'a') as f:
+                    f.write(binding_line)
+                return {"status": "success", "message": f"Added: {binding_line.strip()}"}
+            except Exception as e:
+                return {"error": str(e)}
+        
+        elif action == "reload":
+            result = subprocess.run(["swaymsg", "reload"], capture_output=True, text=True)
+            return {"output": result.stdout, "status": "success" if result.returncode == 0 else "failed"}
+        
+        else:
+            return {"error": f"Unknown action: {action}. Available: show-config, list-keybindings, add-keybinding, reload"}
+    
+    def _waybar_tool(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage Waybar configuration"""
+        action = args.get("action", "help")
+        config_path = os.path.expanduser("~/.config/waybar/config.jsonc")
+        
+        if action == "show-config":
+            try:
+                with open(config_path, 'r') as f:
+                    return {"content": f.read()}
+            except FileNotFoundError:
+                # Try without .jsonc extension
+                config_path = os.path.expanduser("~/.config/waybar/config")
+                try:
+                    with open(config_path, 'r') as f:
+                        return {"content": f.read()}
+                except FileNotFoundError:
+                    return {"error": "Waybar config not found"}
+        
+        elif action == "restart":
+            # Kill existing waybar
+            subprocess.run(["killall", "waybar"], capture_output=True)
+            # Start new one
+            result = subprocess.run(["waybar", "&"], shell=True, capture_output=True, text=True)
+            return {"status": "success", "message": "Waybar restarted"}
+        
+        elif action == "reload":
+            subprocess.run(["killall", "-SIGUSR2", "waybar"], capture_output=True)
+            return {"status": "success", "message": "Waybar reloaded"}
+        
+        else:
+            return {"error": f"Unknown action: {action}. Available: show-config, restart, reload"}
+    
+    def _network_tool(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage network configuration"""
+        action = args.get("action", "status")
+        
+        if action == "status":
+            result = subprocess.run(["nmcli", "device", "status"], capture_output=True, text=True)
+            return {"output": result.stdout}
+        
+        elif action == "connections":
+            result = subprocess.run(["nmcli", "connection", "show"], capture_output=True, text=True)
+            return {"output": result.stdout}
+        
+        elif action == "wifi-list":
+            result = subprocess.run(["nmcli", "device", "wifi", "list"], capture_output=True, text=True)
+            return {"output": result.stdout}
+        
+        elif action == "set-dns":
+            connection = args.get("connection")
+            dns = args.get("dns")
+            if not connection or not dns:
+                return {"error": "Both 'connection' and 'dns' required"}
+            
+            result = subprocess.run(
+                ["nmcli", "connection", "modify", connection, "ipv4.dns", dns],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                # Reload connection
+                subprocess.run(["nmcli", "connection", "up", connection], capture_output=True)
+                return {"status": "success", "message": f"DNS set to {dns} for {connection}"}
+            return {"error": result.stderr}
+        
+        else:
+            return {"error": f"Unknown action: {action}. Available: status, connections, wifi-list, set-dns"}
+    
+    def _systemd_tool(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage systemd services"""
+        action = args.get("action", "status")
+        service = args.get("service", "")
+        
+        if action == "status":
+            if not service:
+                return {"error": "Service name required"}
+            result = subprocess.run(["systemctl", "status", service], capture_output=True, text=True)
+            return {"output": result.stdout}
+        
+        elif action == "restart":
+            if not service:
+                return {"error": "Service name required"}
+            result = subprocess.run(["systemctl", "restart", service], capture_output=True, text=True)
+            return {"status": "success" if result.returncode == 0 else "failed", "output": result.stderr}
+        
+        elif action == "enable":
+            if not service:
+                return {"error": "Service name required"}
+            result = subprocess.run(["systemctl", "enable", service], capture_output=True, text=True)
+            return {"status": "success" if result.returncode == 0 else "failed", "output": result.stdout}
+        
+        elif action == "disable":
+            if not service:
+                return {"error": "Service name required"}
+            result = subprocess.run(["systemctl", "disable", service], capture_output=True, text=True)
+            return {"status": "success" if result.returncode == 0 else "failed", "output": result.stdout}
+        
+        elif action == "logs":
+            if not service:
+                return {"error": "Service name required"}
+            lines = args.get("lines", "50")
+            result = subprocess.run(["journalctl", "-u", service, "-n", str(lines)], capture_output=True, text=True)
+            return {"output": result.stdout}
+        
+        elif action == "list":
+            result = subprocess.run(["systemctl", "list-units", "--type=service", "--all"], capture_output=True, text=True)
+            return {"output": result.stdout}
+        
+        else:
+            return {"error": f"Unknown action: {action}. Available: status, restart, enable, disable, logs, list"}
+    
     def _ask_llm(self, prompt: str) -> str:
         """Ask the LLM a question"""
         # Build conversation history
@@ -56,13 +208,9 @@ class MCPAgent:
         full_prompt = f"""{self.system_context}
 {history_context}
 
-You have access to system tools via MCP (Model Context Protocol). You can:
-- Execute bash commands
-- Read and write files
-- Check system status
-- Configure network settings
+You have access to system tools via MCP (Model Context Protocol).
 
-When user asks you to do something, respond with a JSON tool call in this format:
+When the user asks you to do something, respond with a JSON tool call in this format:
 {{
   "tool": "tool_name",
   "arguments": {{"arg1": "value1"}},
@@ -80,8 +228,27 @@ Available tools:
 
 - write_file: Write to files (args: path, content)
 
-- network_info: Show network interfaces (no args needed)
-  Example: {{"tool": "network_info", "arguments": {{}}, "explanation": "Show network interfaces"}}
+- sway: Manage Sway window manager (args: action = show-config|list-keybindings|add-keybinding|reload, key = for add-keybinding, command = for add-keybinding)
+  Example: {{"tool": "sway", "arguments": {{"action": "show-config"}}, "explanation": "Show Sway configuration file"}}
+  Example: {{"tool": "sway", "arguments": {{"action": "list-keybindings"}}, "explanation": "List all Sway keybindings"}}
+  Example: {{"tool": "sway", "arguments": {{"action": "add-keybinding", "key": "Mod+d", "command": "rofi -show drun"}}, "explanation": "Add Mod+d keybinding for rofi"}}
+  Example: {{"tool": "sway", "arguments": {{"action": "reload"}}, "explanation": "Reload Sway configuration"}}
+
+- waybar: Manage Waybar status bar (args: action = show-config|restart|reload)
+  Example: {{"tool": "waybar", "arguments": {{"action": "show-config"}}, "explanation": "Show Waybar configuration"}}
+  Example: {{"tool": "waybar", "arguments": {{"action": "restart"}}, "explanation": "Restart Waybar"}}
+  Example: {{"tool": "waybar", "arguments": {{"action": "reload"}}, "explanation": "Reload Waybar config without restarting"}}
+
+- network: Manage network configuration (args: action = status|connections|wifi-list|set-dns, connection = for set-dns, dns = for set-dns)
+  Example: {{"tool": "network", "arguments": {{"action": "status"}}, "explanation": "Show network device status"}}
+  Example: {{"tool": "network", "arguments": {{"action": "connections"}}, "explanation": "List network connections"}}
+  Example: {{"tool": "network", "arguments": {{"action": "set-dns", "connection": "Wired connection 1", "dns": "8.8.8.8"}}, "explanation": "Set DNS to Google DNS"}}
+
+- systemd: Manage system services (args: action = status|restart|enable|disable|logs|list, service = service name, lines = for logs)
+  Example: {{"tool": "systemd", "arguments": {{"action": "status", "service": "docker"}}, "explanation": "Check Docker service status"}}
+  Example: {{"tool": "systemd", "arguments": {{"action": "restart", "service": "networkmanager"}}, "explanation": "Restart NetworkManager"}}
+  Example: {{"tool": "systemd", "arguments": {{"action": "logs", "service": "sshd", "lines": "100"}}, "explanation": "Show last 100 lines of SSH logs"}}
+  Example: {{"tool": "systemd", "arguments": {{"action": "list"}}, "explanation": "List all systemd services"}}
 
 - kubernetes: Manage Kubernetes resources (args: action = pods|deployments|services|namespaces|all|check-health|logs|describe, namespace = optional|all, pod = required for logs/describe, tail = optional for logs, resource = optional)
   Example: {{"tool": "kubernetes", "arguments": {{"action": "pods", "namespace": "grafana"}}, "explanation": "Get pods in grafana namespace"}}
@@ -99,9 +266,7 @@ Available tools:
 
 Current user request: {prompt}
 
-If this requires a tool, respond ONLY with the JSON tool call.
-If it's a question about previous output or asking for help with an error, you can answer based on the previous conversation.
-If user asks to analyze, explain, or solve an issue from previous output, provide your analysis as text (not a tool call).
+Respond with the appropriate JSON tool call, or if it's a question about previous output, answer based on conversation history.
 """
         
         result = subprocess.run(
@@ -134,12 +299,16 @@ If user asks to analyze, explain, or solve an issue from previous output, provid
             }
         
         elif tool == "read_file":
-            with open(args["path"], 'r') as f:
+            # Expand ~ to home directory
+            file_path = os.path.expanduser(args["path"])
+            with open(file_path, 'r') as f:
                 return {"content": f.read()}
         
         elif tool == "write_file":
-            os.makedirs(os.path.dirname(args["path"]), exist_ok=True)
-            with open(args["path"], 'w') as f:
+            # Expand ~ to home directory
+            file_path = os.path.expanduser(args["path"])
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
                 f.write(args["content"])
             return {"status": "success"}
         
@@ -308,6 +477,18 @@ If user asks to analyze, explain, or solve an issue from previous output, provid
                 outputs.append(k8s_info)
             
             return {"output": "\n\n".join(outputs) if outputs else "No data available"}
+        
+        elif tool == "sway":
+            return self._sway_tool(args)
+        
+        elif tool == "waybar":
+            return self._waybar_tool(args)
+        
+        elif tool == "network":
+            return self._network_tool(args)
+        
+        elif tool == "systemd":
+            return self._systemd_tool(args)
         
         else:
             return {"error": f"Unknown tool: {tool}"}

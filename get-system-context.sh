@@ -30,6 +30,12 @@ DOCKER:
 - Docker installed: $(command -v docker &>/dev/null && echo "Yes ($(docker --version | cut -d' ' -f3 | tr -d ','))" || echo "No")
 - Running containers: $(docker ps --format '{{.Names}}' 2>/dev/null | wc -l || echo "0")
 
+DESKTOP ENVIRONMENT:
+- Session Type: $(echo ${XDG_SESSION_TYPE:-Not detected})
+- Desktop: $(echo ${XDG_CURRENT_DESKTOP:-Not detected})
+- Window Manager: $(wmctrl -m 2>/dev/null | grep "Name:" | cut -d':' -f2 | xargs || echo "Not detected")
+- Wayland Compositor: $(echo ${WAYLAND_DISPLAY:+Wayland} || echo "X11")
+
 PROJECT DIRECTORIES:
 $(ls -1 ~/projects 2>/dev/null | head -10 | sed 's/^/  - /' || echo "  None")
 

@@ -11,14 +11,16 @@ AI agent powered by Ollama + Model Context Protocol that can execute commands, m
 ## ✨ Features
 
 - 🤖 **MCP Agent** - LLM that can actually execute commands, not just suggest them
-- 🧠 **Conversation Memory** - Remembers previous outputs for intelligent follow-up questions  
+- 🧠 **Conversation Memory** - Remembers previous outputs for intelligent follow-up questions
 - ⚡ **Smart Auto-Approval** - Safe operations execute immediately, dangerous ones need confirmation
-- 🎯 **System Aware** - Knows your OS, hardware, k8s context, Docker status
+- 🖥️ **System Aware** - Knows your OS, hardware, desktop environment, k8s context, Docker status
 - ☸️ **Kubernetes Tools** - Health checks, pod logs, describe resources, multi-namespace queries
+- 🪟 **Sway/Waybar Management** - View configs, add keybindings, restart/reload
+- 🌐 **Network Management** - Show interfaces, configure DNS, manage connections
+- ⚙️ **Systemd Control** - Service status, restart, logs, enable/disable
 - 🔒 **Safety First** - Approval required for file writes, deletes, and dangerous operations
-- 📡 **Network Management** - Show interfaces, configure DNS, check connectivity
 - 💾 **Offline Capable** - 100% local, no API keys, no subscriptions
-- 🎨 **Multiple Models** - Choose speed vs. quality (1.5b/3b/7b variants)
+- 🎨 **Multiple Models** - Choose speed vs. quality (3b is default, fast and capable)
 
 ## 🆚 Comparison
 
@@ -50,7 +52,7 @@ cd ollama-mcp-agent
 # Install MCP dependencies
 pip install --user -r mcp-server/requirements.txt
 
-# Pull the default model
+# Pull the default model (fast and capable)
 ollama pull qwen2.5-coder:3b
 
 # Make scripts executable
@@ -66,12 +68,18 @@ chmod +x agent chat ask code-helper models quick-fix
 # Interactive agent mode
 ./agent -i
 > check my disk space
-> show network interfaces
+> show my sway keybindings
+> restart waybar
 > check my kubernetes cluster for issues
 
-# One-off commands
-./agent "list all kubernetes namespaces"
+# One-off commands - System Management
+./agent "show my waybar config"
+./agent "restart docker service"
+./agent "list network connections"
+
+# Kubernetes Management
 ./agent "show pods in prometheus namespace"
+./agent "check for failing pods"
 
 # Traditional chat without command execution
 ./chat
@@ -80,7 +88,11 @@ chmod +x agent chat ask code-helper models quick-fix
 
 ## 🎯 Default Model
 
-**qwen2.5-coder:3b** - Balanced coding model with full system awareness (fast & capable)
+**qwen2.5-coder:3b** - Fast and capable coding model with full system awareness
+
+Other options:
+- **7b** - Slower but more capable for complex reasoning
+- **14b** - Most capable, requires 16GB+ RAM
 
 ## 🔍 System Context Feature
 
@@ -194,9 +206,9 @@ Then reload: `source ~/.bashrc`
    - Kubernetes troubleshooting? → `./agent -i` with health checks
 
 2. **Use the right model for the task:**
-   - Quick questions → qwen2.5-coder:1.5b (fastest)
-   - Balanced use → qwen2.5-coder:3b (default, recommended)
-   - Complex coding → qwen2.5-coder:7b (slowest, smartest)
+   - Quick questions → qwen2.5-coder:3b (default, recommended)
+   - Complex tasks → qwen2.5-coder:7b (slower, more capable)
+   - Maximum capability → qwen2.5-coder:14b (slowest, smartest)
    - See `./performance-guide.sh` for comparisons
 
 3. **Pipe content directly:**
