@@ -44,7 +44,7 @@ AI agent powered by Ollama + Model Context Protocol that can execute commands, m
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/ollama-mcp-agent.git
+git clone https://github.com/Pete1979/ollama-mcp-agent.git
 cd ollama-mcp-agent
 
 # Install MCP dependencies
