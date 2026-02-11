@@ -1,0 +1,66 @@
+#!/bin/bash
+# Quick demo of the MCP agent
+
+cat << 'EOF'
+🤖 MCP AGENT DEMO
+==================
+
+Your LLM now has the ability to EXECUTE commands!
+
+Let me show you what it can do...
+
+EXAMPLE 1: Check disk space
+----------------------------
+You: ./agent "check disk space"
+
+The LLM will:
+1. Generate the command: df -h
+2. Ask for your approval
+3. Execute it and show results
+
+EXAMPLE 2: Network info
+------------------------
+You: ./agent "show network interfaces"
+
+The LLM will:
+1. Generate: nmcli device status
+2. Ask for approval
+3. Show your network interfaces
+
+EXAMPLE 3: Change network settings
+-----------------------------------
+You: ./agent "change my DNS to 8.8.8.8"
+
+The LLM will:
+1. Generate: nmcli device modify eth0 ipv4.dns 8.8.8.8
+2. ⚠️  SHOW YOU exactly what it will do
+3. ASK FOR APPROVAL
+4. Only execute if you type 'y'
+
+🎯 TRY IT NOW (Interactive Mode):
+-----------------------------------
+./agent -i
+
+Then type requests like:
+- "show me memory usage"
+- "list files in /tmp"
+- "check docker status"
+- "what's my hostname?"
+
+📖 Full documentation:
+cat MCP-AGENT-README.md
+
+🔒 SAFETY:
+Every command needs YOUR approval before execution!
+
+EOF
+
+echo ""
+echo -e "\033[1;32m✓ Agent is ready!\033[0m"
+echo ""
+echo "Quick test (safe, read-only):"
+echo "./agent \"what's my hostname?\""
+echo ""
+echo "Interactive mode (press Ctrl+C to exit):"
+echo "./agent -i"
+echo ""

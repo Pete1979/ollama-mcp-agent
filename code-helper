@@ -1,0 +1,33 @@
+#!/bin/bash
+# Get coding help from your local LLM
+# Usage: ./code-helper [model_name]
+
+MODEL="${1:-qwen2.5-coder:3b}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+SYSTEM_CONTEXT="$($SCRIPT_DIR/get-system-context.sh)"
+SYSTEM_PROMPT="You are a helpful coding assistant specialized in multiple programming languages. Provide clear, concise answers with code examples when relevant. Format code blocks properly. Consider the user's system environment when providing solutions.
+
+$SYSTEM_CONTEXT"
+
+echo "Starting code helper with $MODEL..."
+echo "Ask me anything about programming!"
+echo "Type 'exit' or press Ctrl+D to quit"
+echo "----------------------------------------"
+
+while true; do
+    echo -n "You: "
+    read -r INPUT
+    
+    if [ -z "$INPUT" ] || [ "$INPUT" = "exit" ]; then
+        echo "Goodbye!"
+        break
+    fi
+    
+    echo ""
+    echo "Assistant:"
+    ollama run "$MODEL" "$SYSTEM_PROMPT
+
+Question: $INPUT"
+    echo ""
+done

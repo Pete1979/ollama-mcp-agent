@@ -1,0 +1,39 @@
+#!/bin/bash
+# Quick question to your local LLM
+# Usage: ./ask "your question here" [model_name]
+# Add --no-context flag to skip system context
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 \"your question\" [model_name] [--no-context]"
+    echo "Example: $0 \"What is Docker?\" qwen2.5-coder:7b"
+    exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+QUESTION="$1"
+MODEL="qwen2.5-coder:3b"
+USE_CONTEXT=true
+
+# Parse arguments
+shift
+for arg in "$@"; do
+    if [ "$arg" = "--no-context" ]; then
+        USE_CONTEXT=false
+    else
+        MODEL="$arg"
+    fi
+done
+
+# Build prompt
+if [ "$USE_CONTEXT" = true ]; then
+    SYSTEM_CONTEXT="$($SCRIPT_DIR/get-system-context.sh)"
+    PROMPT="$SYSTEM_CONTEXT
+
+User question: $QUESTION"
+else
+    PROMPT="$QUESTION"
+fi
+
+echo "Asking $MODEL..."
+echo ""
+ollama run "$MODEL" "$PROMPT"

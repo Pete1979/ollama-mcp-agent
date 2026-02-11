@@ -1,0 +1,38 @@
+#!/bin/bash
+# Quick code fix suggestions
+# Usage: cat error.log | ./quick-fix
+#   or:  ./quick-fix "paste error message here"
+
+MODEL="${QUICK_FIX_MODEL:-qwen2.5-coder:3b}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -p /dev/stdin ]; then
+    # Input from pipe
+    INPUT=$(cat -)
+else
+    # Input from argument
+    INPUT="$1"
+fi
+
+if [ -z "$INPUT" ]; then
+    echo "Usage: $0 \"error message or code\""
+    echo "   or: cat error.log | $0"
+    exit 1
+fi
+
+SYSTEM_CONTEXT="$($SCRIPT_DIR/get-system-context.sh)"
+
+PROMPT="$SYSTEM_CONTEXT
+
+Analyze this error or code issue and provide a concise fix:
+
+$INPUT
+
+Provide:
+1. What's wrong
+2. How to fix it
+3. Code example if applicable (consider the system environment above)"
+
+echo "Analyzing with $MODEL..."
+echo ""
+ollama run "$MODEL" "$PROMPT"

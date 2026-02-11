@@ -1,0 +1,41 @@
+#!/bin/bash
+# List and manage your Ollama models
+# Usage: ./models [list|switch|pull|remove]
+
+case "$1" in
+    list|"")
+        echo "Available models:"
+        ollama list
+        ;;
+    switch)
+        echo "Select a model to chat with:"
+        ollama list
+        echo ""
+        read -p "Enter model name: " MODEL
+        ./chat "$MODEL"
+        ;;
+    pull)
+        echo "Popular models you can download:"
+        echo "  - llama3.2:3b (2GB) - Fast, good for quick queries"
+        echo "  - llama3.1:8b (4.9GB) - Smart, better reasoning"
+        echo "  - codellama (3.8GB) - Specialized for code"
+        echo "  - mistral (4.1GB) - Fast and capable"
+        echo "  - phi3 (2.3GB) - Small but powerful"
+        echo ""
+        read -p "Enter model name to download: " MODEL
+        ollama pull "$MODEL"
+        ;;
+    remove)
+        ollama list
+        echo ""
+        read -p "Enter model name to remove: " MODEL
+        ollama rm "$MODEL"
+        ;;
+    *)
+        echo "Usage: $0 [list|switch|pull|remove]"
+        echo "  list   - Show installed models (default)"
+        echo "  switch - Select and chat with a model"
+        echo "  pull   - Download a new model"
+        echo "  remove - Remove an installed model"
+        ;;
+esac
